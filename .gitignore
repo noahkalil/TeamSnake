@@ -1,4 +1,4 @@
-# C gitignore begin
+# C/C++ gitignore begin
 
 # Prerequisites
 *.d
@@ -8,6 +8,8 @@
 *.ko
 *.obj
 *.elf
+*.slo
+*.lo
 
 # Linker output
 *.ilk
@@ -22,6 +24,7 @@
 *.lib
 *.a
 *.la
+*.lai
 *.lo
 
 # Shared objects (inc. Windows DLLs)
@@ -45,6 +48,8 @@
 *.pdb
 
 # Kernel Module Compile Results
+*.mod
+*.smod
 *.mod*
 *.cmd
 modules.order
@@ -52,4 +57,4 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# C gitignore end
+# C/C++ gitignore end
