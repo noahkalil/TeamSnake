@@ -5,11 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <linux/input.h>
 #include <linux/uinput.h>
+#include "keycodes.h"
 
 #define die(str, args...) do { \
         perror(str); \
@@ -17,7 +19,7 @@
     } while(0)
 
 void check_opening(int fd);
-int line_to_key(char* line);
+uint8_t bitstring_to_key(char* bitstring);
 void press_key(int fd, struct input_event* ev, int key);
 
 int main(void) {
@@ -50,10 +52,11 @@ int main(void) {
     die("error: ioctl");
 
   while( getline(&line, &len, stdin) != -1 ) {
-    key = line_to_key(line);
-    printf("Key: %d\n", key);
-    //press_key(fd, &ev, key);
-    //sleep(1);
+    key = bitstring_to_key(line);
+    printf("Line: %s", line);
+    printf("Key : %d\n", key);
+    sleep(3);
+    press_key(fd, &ev, key);
   }
 
   sleep(1);
@@ -68,6 +71,7 @@ int main(void) {
 }
 
 void check_opening(int fd) {
+  int i = 0;
   if(fd < 0)
     die("error: open");
 
@@ -87,16 +91,30 @@ void check_opening(int fd) {
 
   if(ioctl(fd, UI_SET_RELBIT, REL_Y) < 0)
     die("error: ioctl REL_Y");
+
+  for (i = 4; i < 101; ++i) {
+    if(ioctl(fd, UI_SET_KEYBIT, key_codes[i]) < 0)
+      die("error: ioctl BTN_LEFT");
+  }
 }
 
-int line_to_key(char* line) {
-  int code = (int) strtol(line, NULL, 2);
+uint8_t bitstring_to_key(char* bitstring) {
+  uint8_t code = (uint8_t) strtol(bitstring, NULL, 2);
+  //if (code >> (sizeof(code)*8 - 1)) // if shift was sent
+  //  return shift_key_codes[code-128];
   return key_codes[code];
 }
 
 void press_key(int fd, struct input_event* ev, int key) {
-  if (key == 0) return;
+  if (key <= 0) return;
+  //bool shift = false;
 
+  //if (key >> (sizeof(key)*8 - 1)) {
+  //  key -= 128;
+  //  shift = true;
+  //}
+
+  printf("Pressing %d", key);
   // press key
   memset(ev, 0, sizeof(struct input_event));
   ev->type = EV_KEY;
@@ -121,6 +139,7 @@ void press_key(int fd, struct input_event* ev, int key) {
   if(write(fd, ev, sizeof(struct input_event)) < 0)
     die("error: write REL_ENTER");
 
+  // sync release
   memset(ev, 0, sizeof(struct input_event));
   ev->type = EV_SYN;
   ev->code = SYN_REPORT;
