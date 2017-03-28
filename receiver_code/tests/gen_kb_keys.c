@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -18,6 +19,8 @@
         perror(str); \
         exit(EXIT_FAILURE); \
     } while(0)
+
+void press_key(int fd, struct input_event* ev, int key);
 
 int main(void) {
     int                     fd;
@@ -72,7 +75,9 @@ int main(void) {
     srand(time(NULL));
 
     // test key press action
-    while(0) {
+    while(1) {
+        press_key(fd, &ev, BTN_LEFT);
+        /*
         // BTN_LEFT pressed and releasd
         memset(&ev, 0, sizeof(struct input_event));
         ev.type = EV_KEY;
@@ -102,6 +107,8 @@ int main(void) {
         if(write(fd, &ev, sizeof(struct input_event)) < 0)
             die("error: write EV_SYN");
 
+        */
+
         // KEY_A pressed and released
         memset(&ev, 0, sizeof(struct input_event));
         ev.type = EV_KEY;
@@ -130,10 +137,12 @@ int main(void) {
         ev.value = 0;
         if(write(fd, &ev, sizeof(struct input_event)) < 0)
             die("error: write EV_SYN");
+
+        usleep(1);
     }
 
     // test mouse movement
-    while(1) {
+    while(0) {
         switch(rand() % 4) {
         case 0:
             dx = -10;
@@ -196,4 +205,47 @@ int main(void) {
     close(fd);
     printf("Done!\n");
     return 0;
+}
+
+void press_key(int fd, struct input_event* ev, int key) {
+  if (key == 0) return;
+  //bool shift = false;
+
+  //if (key >> (sizeof(key)*8 - 1)) {
+  //  key -= 128;
+  //  shift = true;
+  //}
+
+  printf("Pressing %d\n", key);
+  // press key
+  memset(ev, 0, sizeof(struct input_event));
+  ev->type = EV_KEY;
+  ev->code = key;
+  ev->value = 1;
+  if(write(fd, ev, sizeof(struct input_event)) < 0)
+    die("error: write REL_ENTER");
+
+  // sync press
+  memset(ev, 0, sizeof(struct input_event));
+  ev->type = EV_SYN;
+  ev->code = SYN_REPORT;
+  ev->value = 0;
+  if(write(fd, ev, sizeof(struct input_event)) < 0)
+    die("error: write EV_SYN");
+
+  // release key
+  memset(ev, 0, sizeof(struct input_event));
+  ev->type = EV_KEY;
+  ev->code = key;
+  ev->value = 0;
+  if(write(fd, ev, sizeof(struct input_event)) < 0)
+    die("error: write REL_ENTER");
+
+  // sync release
+  memset(ev, 0, sizeof(struct input_event));
+  ev->type = EV_SYN;
+  ev->code = SYN_REPORT;
+  ev->value = 0;
+  if(write(fd, ev, sizeof(struct input_event)) < 0)
+    die("error: write EV_SYN");
 }
