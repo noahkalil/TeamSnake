@@ -28,7 +28,3 @@ int kbhit(void)
 
   return 0;
 }
-
-bool press_key(uint8_t key) {
-  
-}
