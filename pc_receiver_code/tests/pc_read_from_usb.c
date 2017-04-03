@@ -18,7 +18,9 @@
         exit(EXIT_FAILURE); \
     } while(0)
 
-void check_opening(int fd, FILE* ttyUSB);
+int set_interface_attribs (int fd, int speed, int parity);
+void set_blocking (int fd, int should_block);
+void check_opening(int fd, int ttyUSB);
 void create_uidev(int fd, struct uinput_user_dev* uidev, char* name);
 uint8_t bitstring_to_key(char* bitstring);
 void press_key(int fd, struct input_event* ev, int key);
@@ -27,25 +29,29 @@ int main(void) {
   struct uinput_user_dev  uidev;
   struct input_event      ev;
 
-  int                     fd, key;
-  size_t                  len;
-  char*                   line = NULL;
-  FILE*                   ttyUSB;
+  int                     fd, ttyUSB;
+  size_t                  len = 1;
+  char                    key[1];
 
   // /dev/uinput doesn't explicitly say key/mouse/touch
   fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
-  ttyUSB = fopen("/dev/ttyUSB0", "r");
+  ttyUSB = open("/dev/ttyUSB0", O_RDONLY | O_NOCTTY | O_SYNC);
   check_opening(fd, ttyUSB);
+
+  set_interface_attribs (ttyUSB, B9600, 0);  // set speed to 115,200 bps, 8n1 (no parity)
+  set_blocking (ttyUSB, 0);                 // set no blocking
+
+  int n = read (fd, buf, sizeof buf);   // read up to 100 characters if ready to read
 
   create_uidev(fd, &uidev, "keyboard-input-injector");
   sleep(1);
 
-  while( getline(&line, &len, ttyUSB) != -1 ) {
-    key = bitstring_to_key(line);
+  while( getline(&key, &len, ttyUSB) != -1 ) {
+    //key = bitstring_to_key(line);
     //printf("Line: %s", line);
     //printf("Key : %d\n", key);
     //sleep(1);
-    press_key(fd, &ev, key);
+    press_key(fd, &ev, key_codes[*key]);
   }
 
   sleep(1);
@@ -59,13 +65,13 @@ int main(void) {
   return 0;
 }
 
-void check_opening(int fd, FILE* ttyUSB) {
+void check_opening(int fd, int ttyUSB) {
   int i = 0;
 
   if(fd < 0)
     die("error: open");
 
-  if (ttyUSB == NULL)
+  if (ttyUSB < 0)
     die("error: could not open USB0");
 
   // says key
@@ -155,3 +161,56 @@ void press_key(int fd, struct input_event* ev, int key) {
   if(write(fd, ev, sizeof(struct input_event)) < 0)
     die("error: write EV_SYN");
 }
+
+int set_interface_attribs (int fd, int speed, int parity) {
+  struct termios tty;
+  memset (&tty, 0, sizeof tty);
+  if (tcgetattr (fd, &tty) != 0) {
+    error_message ("error %d from tcgetattr", errno);
+    return -1;
+  }
+
+  cfsetospeed (&tty, speed);
+  cfsetispeed (&tty, speed);
+
+  tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
+  // disable IGNBRK for mismatched speed tests; otherwise receive break
+  // as \000 chars
+  tty.c_iflag &= ~IGNBRK;         // disable break processing
+  tty.c_lflag = 0;                // no signaling chars, no echo,
+                                  // no canonical processing
+  tty.c_oflag = 0;                // no remapping, no delays
+  tty.c_cc[VMIN]  = 0;            // read doesn't block
+  tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
+
+  tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+
+  tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,
+                                  // enable reading
+  tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
+  tty.c_cflag |= parity;
+  tty.c_cflag &= ~CSTOPB;
+  tty.c_cflag &= ~CRTSCTS;
+
+  if (tcsetattr (fd, TCSANOW, &tty) != 0) {
+    error_message ("error %d from tcsetattr", errno);
+    return -1;
+  }
+  return 0;
+}
+
+void set_blocking (int fd, int should_block) {
+  struct termios tty;
+  memset (&tty, 0, sizeof tty);
+  if (tcgetattr (fd, &tty) != 0) {
+    error_message ("error %d from tggetattr", errno);
+    return;
+  }
+
+  tty.c_cc[VMIN]  = should_block ? 1 : 0;
+  tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
+
+  if (tcsetattr (fd, TCSANOW, &tty) != 0)
+    error_message ("error %d setting term attributes", errno);
+}
+
