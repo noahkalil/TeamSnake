@@ -32,8 +32,6 @@ int main(int argc, char** argv) {
   char*                   line = NULL;
   FILE*                   ttyUSB;
 
-  char* bitstring = (char*) malloc(sizeof(char) * 9);
-
   // /dev/uinput doesn't explicitly say key/mouse/touch
   fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
   ttyUSB = fopen(argv[1], "r");
@@ -43,11 +41,10 @@ int main(int argc, char** argv) {
   sleep(1);
 
   while( getline(&line, &len, ttyUSB) != -1 ) {
-    bitstring = line+4;
-    key = bitstring_to_key(bitstring);
-    printf("Bitstring: %s", bitstring);
-    printf("Bitstring len: %d\n", strlen(bitstring));
-    printf("Key : %d\n", key);
+    key = bitstring_to_key(line+4);
+    //printf("Bitstring: %s", bitstring);
+    //printf("Bitstring len: %d\n", strlen(bitstring));
+    //printf("Key : %d\n", key);
     //sleep(1);
     press_key(fd, &ev, key);
   }
@@ -60,8 +57,6 @@ int main(int argc, char** argv) {
   fclose(ttyUSB);
   if (line)
     free(line);
-  if (bitstring)
-    free(bitstring);
   return 0;
 }
 
