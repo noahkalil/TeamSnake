@@ -23,7 +23,7 @@ void create_uidev(int fd, struct uinput_user_dev* uidev, char* name);
 uint8_t bitstring_to_key(char* bitstring);
 void press_key(int fd, struct input_event* ev, int key);
 
-int main(void) {
+int main(int argc, char** argv) {
   struct uinput_user_dev  uidev;
   struct input_event      ev;
 
@@ -32,18 +32,22 @@ int main(void) {
   char*                   line = NULL;
   FILE*                   ttyUSB;
 
+  char* bitstring = (char*) malloc(sizeof(char) * 9);
+
   // /dev/uinput doesn't explicitly say key/mouse/touch
   fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
-  ttyUSB = fopen("/dev/ttyUSB0", "r");
+  ttyUSB = fopen(argv[1], "r");
   check_opening(fd, ttyUSB);
 
   create_uidev(fd, &uidev, "keyboard-input-injector");
   sleep(1);
 
   while( getline(&line, &len, ttyUSB) != -1 ) {
-    key = bitstring_to_key(line);
-    //printf("Line: %s", line);
-    //printf("Key : %d\n", key);
+    bitstring = line+4;
+    key = bitstring_to_key(bitstring);
+    printf("Bitstring: %s", bitstring);
+    printf("Bitstring len: %d\n", strlen(bitstring));
+    printf("Key : %d\n", key);
     //sleep(1);
     press_key(fd, &ev, key);
   }
@@ -56,6 +60,8 @@ int main(void) {
   fclose(ttyUSB);
   if (line)
     free(line);
+  if (bitstring)
+    free(bitstring);
   return 0;
 }
 

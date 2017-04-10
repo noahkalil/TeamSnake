@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <termios.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <linux/input.h>
@@ -41,12 +42,12 @@ int main(void) {
   set_interface_attribs (ttyUSB, B9600, 0);  // set speed to 115,200 bps, 8n1 (no parity)
   set_blocking (ttyUSB, 0);                 // set no blocking
 
-  int n = read (fd, buf, sizeof buf);   // read up to 100 characters if ready to read
+  int n = read (fd, key, sizeof key);   // read up to 1 characters if ready to read
 
   create_uidev(fd, &uidev, "keyboard-input-injector");
   sleep(1);
 
-  while( getline(&key, &len, ttyUSB) != -1 ) {
+  while( getline(key, &len, ttyUSB) != -1 ) {
     //key = bitstring_to_key(line);
     //printf("Line: %s", line);
     //printf("Key : %d\n", key);
@@ -59,9 +60,9 @@ int main(void) {
     die("error: ioctl");
 
   close(fd);
-  fclose(ttyUSB);
-  if (line)
-    free(line);
+  close(ttyUSB);
+  if (key)
+    free(key);
   return 0;
 }
 
