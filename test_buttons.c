@@ -31,6 +31,7 @@
 #include "stm32f4xx_hal_gpio.h"
 void USART_initialize(uint32_t baudrate, uint8_t sw_rtscts);
 void Pins_initialize();
+void Read_button();
 
 char* num2button(int num, char* str) {
   if (num == -1)
@@ -52,26 +53,34 @@ char* num2button(int num, char* str) {
 }
 
 int main(int argc, char** argv) {
-  int   button = 0;
+  int   button = 0; // MUST BE SIGNED
   char  but_str[8];
 
   // At this stage the system clock should have already been configured
   // at high speed.
 	USART_initialize(3000000, 0);
-	Pins_initialize();
+	Pins_initialize(); // IMPORTANT
 
   // Infinite loop
   for (;;) {
     // wait a little
 	  for (i=0; i < 10000000; i++);
-    button = Button_pressed();    // read a button
-    num2button(button, but_str);  // save string button to but_str
 
-    // read in button pressed. up, down, left, right is [0..3]
-	  printf("Read button: %d (aka %s)\n", button, but_str);
-  }
+    button = Read_button();    // read a button
 
-}
+    // if button was pressed
+    // -1 signals that no button is being pressed
+    if (button != -1) {
+      // save button to but_str in a human readable form
+      num2button(button, but_str);  
+
+      // read in button pressed. up, down, left, right is [0..3]
+	    printf("Read button: %d (aka %s)\n", button, but_str);
+    }
+
+  } // end infinite loop
+
+} // end main
 
 #pragma GCC diagnostic pop
 
