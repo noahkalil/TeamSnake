@@ -22,6 +22,7 @@ void check_opening(int fd, FILE* ttyUSB);
 void create_uidev(int fd, struct uinput_user_dev* uidev, char* name);
 uint8_t bitstring_to_key(char* bitstring);
 void press_key(int fd, struct input_event* ev, int key);
+uint8_t code2key(int code);
 
 int main(int argc, char** argv) {
   struct uinput_user_dev  uidev;
@@ -34,6 +35,7 @@ int main(int argc, char** argv) {
 
   // /dev/uinput doesn't explicitly say key/mouse/touch
   fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+  printf("Opening %s\n", argv[1]);
   ttyUSB = fopen(argv[1], "r");
   check_opening(fd, ttyUSB);
 
@@ -41,12 +43,12 @@ int main(int argc, char** argv) {
   sleep(1);
 
   while( getline(&line, &len, ttyUSB) != -1 ) {
-    key = bitstring_to_key(line+4);
-    //printf("Bitstring: %s", bitstring);
-    //printf("Bitstring len: %d\n", strlen(bitstring));
-    //printf("Key : %d\n", key);
-    //sleep(1);
-    press_key(fd, &ev, key);
+    key = atoi(line);
+    printf("Code: %d\n", key);
+    //key = code2key( key );
+    key = 0x52u - key;
+    printf("Key : %d\n", key);
+    press_key(fd, &ev, key_codes[key]);
   }
 
   sleep(1);
@@ -67,7 +69,7 @@ void check_opening(int fd, FILE* ttyUSB) {
     die("error: open");
 
   if (ttyUSB == NULL)
-    die("error: could not open USB0");
+    die("error: could not open tty");
 
   // says key
   if(ioctl(fd, UI_SET_EVBIT, EV_KEY) < 0)
@@ -114,14 +116,26 @@ uint8_t bitstring_to_key(char* bitstring) {
   return key_codes[code];
 }
 
+uint8_t code2key(int code) {
+  // aka 0x52 - code;
+
+  if (code == 0) // up
+    return 0x52;
+
+  else if (code == 1) // down 
+    return 0x51;
+
+  else if (code == 2) // left
+    return 0x50;
+
+  else if (code == 3) // right
+    return 0x4F;
+
+  return 0;
+}
+
 void press_key(int fd, struct input_event* ev, int key) {
   if (key == 0) return;
-  //bool shift = false;
-
-  //if (key >> (sizeof(key)*8 - 1)) {
-  //  key -= 128;
-  //  shift = true;
-  //}
 
   printf("Pressing %d\n", key);
   // press key
