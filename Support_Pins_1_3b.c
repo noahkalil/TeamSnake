@@ -182,7 +182,7 @@ int Pin_PC13(void)
 	return (~GPIOC->IDR & GPIO_PIN_13) ? 0 : 1;
 }
 
-int8_t Button_pressed(void) {
+int8_t Read_button(void) {
     // up
     if ( Pin_PC14() )
       return 0x0;
