@@ -1,4 +1,10 @@
-static const uint8_t key_codes[] = {                                                                                                      // index
+/* For use in ENGR 100.850 
+ * Author:  I. Mondragon
+ * Date:    14 April 2017
+ * key_codes for the udev
+ */
+
+static const uint16_t keycodes[] = {                                                                                                      // index
   0,                0,                0,              0,                KEY_A,              KEY_B,          KEY_C,        KEY_D,          // 0x00 - 0x07
   KEY_E,            KEY_F,            KEY_G,          KEY_H,            KEY_I,              KEY_J,          KEY_K,        KEY_L,          // 0x08 - 0x0F
   KEY_M,            KEY_N,            KEY_O,          KEY_P,            KEY_Q,              KEY_R,          KEY_S,        KEY_T,          // 0x10 - 0x17

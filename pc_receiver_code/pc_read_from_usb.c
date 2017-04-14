@@ -1,5 +1,8 @@
 /* The original code is from: 
  *     http://git.nosuchfile.org/?p=uinput-sample.git;a=blob_plain;f=uinput-sample.c;hb=HEAD
+ *
+ * Modified for use in ENGR 100.850 by:   I. Mondragon
+ * Date: 14 April 2017
  */
 
 #include <stdio.h>
@@ -11,6 +14,7 @@
 #include <errno.h>
 #include <linux/input.h>
 #include <linux/uinput.h>
+
 #include "keycodes.h"
 
 #define die(str, args...) do { \
@@ -20,9 +24,8 @@
 
 void check_opening(int fd, FILE* ttyUSB);
 void create_uidev(int fd, struct uinput_user_dev* uidev, char* name);
-uint8_t bitstring_to_key(char* bitstring);
+uint16_t bitstring_to_key(char* bitstring);
 void press_key(int fd, struct input_event* ev, int key);
-uint8_t code2key(int code);
 
 int main(int argc, char** argv) {
   struct uinput_user_dev  uidev;
@@ -43,12 +46,13 @@ int main(int argc, char** argv) {
   sleep(1);
 
   while( getline(&line, &len, ttyUSB) != -1 ) {
-    key = atoi(line);
-    printf("Code: %d\n", key);
-    //key = code2key( key );
-    key = 0x52u - key;
-    printf("Key : %d\n", key);
-    press_key(fd, &ev, key_codes[key]);
+    //printf("Line: %s\n", line);
+    printf("Code: %c\n", *line);
+
+    key = 0x52u - atoi(line);
+    printf("Key : %d\n\n", key);
+
+    press_key( fd, &ev, keycodes[key] ); // from header
   }
 
   sleep(1);
@@ -89,7 +93,7 @@ void check_opening(int fd, FILE* ttyUSB) {
     die("error: ioctl REL_Y");
 
   for (i = 4; i < 101; ++i) {
-    if(ioctl(fd, UI_SET_KEYBIT, key_codes[i]) < 0)
+    if(ioctl(fd, UI_SET_KEYBIT, keycodes[i]) < 0)
       die("error: ioctl BTN_LEFT");
   }
 }
@@ -109,35 +113,15 @@ void create_uidev(int fd, struct uinput_user_dev* uidev, char* name) {
     die("error: ioctl");
 }
 
-uint8_t bitstring_to_key(char* bitstring) {
+uint16_t bitstring_to_key(char* bitstring) {
   uint8_t code = (uint8_t) strtol(bitstring, NULL, 2);
-  //if (code >> (sizeof(code)*8 - 1)) // if shift was sent
-  //  return shift_key_codes[code-128];
-  return key_codes[code];
-}
-
-uint8_t code2key(int code) {
-  // aka 0x52 - code;
-
-  if (code == 0) // up
-    return 0x52;
-
-  else if (code == 1) // down 
-    return 0x51;
-
-  else if (code == 2) // left
-    return 0x50;
-
-  else if (code == 3) // right
-    return 0x4F;
-
-  return 0;
+  return keycodes[code];
 }
 
 void press_key(int fd, struct input_event* ev, int key) {
   if (key == 0) return;
 
-  printf("Pressing %d\n", key);
+  //printf("Pressing %d\n", key);
   // press key
   memset(ev, 0, sizeof(struct input_event));
   ev->type = EV_KEY;
