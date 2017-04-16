@@ -46,10 +46,9 @@ int main(int argc, char** argv) {
   sleep(1);
 
   while( getline(&line, &len, ttyUSB) != -1 ) {
-    //printf("Line: %s\n", line);
-    printf("Code: %c\n", *line);
+    printf("Code: %c\n", line[3]);
 
-    key = 0x52u - atoi(line);
+    key = 0x52u - atoi(line + 3);
     printf("Key : %d\n\n", key);
 
     press_key( fd, &ev, keycodes[key] ); // from header
