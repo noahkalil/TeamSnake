@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <time.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <linux/input.h>
@@ -28,6 +29,14 @@ uint16_t bitstring_to_key(char* bitstring);
 void press_key(int fd, struct input_event* ev, int key);
 void release_key(int fd, struct input_event* ev, int key);
 uint16_t code2qwop(int code);
+
+void sleep_ms(int ms) {
+  struct timespec ts;
+  ts.tv_sec = ms / 1000;
+  ts.tv_nsec = (ms % 1000) * 1000000;
+  nanosleep(&ts, NULL);
+}
+
 
 int main(int argc, char** argv) {
   struct uinput_user_dev  uidev;
@@ -49,14 +58,14 @@ int main(int argc, char** argv) {
 
   while( getline(&line, &len, ttyUSB) != -1 ) {
     //printf("Line: %s\n", line);
-    printf("Code: %c\n", *line);
+    printf("Code: %c\n", line[3]);
 
-    key = code2qwop( atoi(line) );
+    key = code2qwop( atoi(line + 3) );
     printf("Key : %x\n", key);
 
     if (old_key != key) {
       press_key( fd, &ev, keycodes[key] ); // from header
-      sleep(1);
+      sleep_ms(750);
       release_key( fd, &ev, keycodes[key] ); // from header
     }
 
