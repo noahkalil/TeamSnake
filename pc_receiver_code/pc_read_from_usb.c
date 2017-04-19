@@ -24,7 +24,6 @@
 
 void check_opening(int fd, FILE* ttyUSB);
 void create_uidev(int fd, struct uinput_user_dev* uidev, char* name);
-uint16_t bitstring_to_key(char* bitstring);
 void press_key(int fd, struct input_event* ev, int key);
 
 int main(int argc, char** argv) {
@@ -110,11 +109,6 @@ void create_uidev(int fd, struct uinput_user_dev* uidev, char* name) {
 
   if(ioctl(fd, UI_DEV_CREATE) < 0)
     die("error: ioctl");
-}
-
-uint16_t bitstring_to_key(char* bitstring) {
-  uint8_t code = (uint8_t) strtol(bitstring, NULL, 2);
-  return keycodes[code];
 }
 
 void press_key(int fd, struct input_event* ev, int key) {
